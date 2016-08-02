@@ -9,6 +9,7 @@ use JSON;
 use Path::Tiny;
 use HTML::TreeBuilder;
 use HTML::Element;
+use Regexp::Common qw /URI/;
 use Data::Printer return_value => 'dump';
 
 has selected => (
@@ -163,6 +164,7 @@ sub _build_structured_answer {
 			AbstractURL	=> $data->{abstract_url},
 			FirstURL 	=> $metadata->{src_url},
 			Image 		=> $self->_get_image($data->{images}),
+			infoboxData	=> $self->_parse_external_links($data->{external_links}),
 		);
 	}
 
@@ -196,7 +198,7 @@ sub _parse_disambiguations {
 	my @disambiguations = split /\\n/, $disambiguations;
 	foreach my $disambiguation (@disambiguations){
 		my $result = {};
-		if ($disambiguation =~ m/^\*\[\[(.+)\]\],(.+)$/) {
+		if ($disambiguation =~ m/^\*\[\[(.+)\]\],(.+)\]$/) {
 
 			my $title = $1;
 			my $html  = $2;
@@ -217,9 +219,33 @@ sub _parse_disambiguations {
 				Text => $text
 			};
 		}
+		else {
+			$self->app->emit_error("Incorrect syntax for disambiguation: $disambiguation");
+		}
 		push @out, $result;
 	}
 	return \@out;
+}
+
+
+# Emulate internal processing to build JSON
+# matching DDG API result format
+sub _parse_external_links {
+	my ($self, $external_links) = @_;
+	my @infobox_data;
+	my @external_links = split /\\\\n/, $external_links;
+	foreach my $link (@external_links){
+		if ($link =~ m|^\[(.+) (https?://(?:www\.)?.+)\]$|i) {
+			push @infobox_data, { label => $1, url => lc $2 }
+		}
+		else {
+			$self->app->emit_error("Incorrect syntax for external link: $link");
+		}
+	}
+	if (scalar @infobox_data){
+		unshift @infobox_data, { heading => "External Links" };
+	}
+	return \@infobox_data;
 }
 
 # Emulate internal processing to build JSON
@@ -239,6 +265,5 @@ sub _replace_newlines {
 	$abstract =~ s/\\n/<br>/g;
 	return $abstract;
 }
-
 
 1;
