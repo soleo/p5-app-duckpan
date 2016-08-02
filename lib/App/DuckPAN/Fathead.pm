@@ -89,12 +89,18 @@ sub _build_dbh {
 	return $dbh;
 }
 
+# Public function to get a Fathead result for a given query
+sub structured_answer_for_query {
+	my ($self, $query) = @_;
+	my $result = $self->_search_output($query) or return undef;
+	return $self->_build_structured_answer($result);
+}
+
 # Get a Fathead result from the DB
 # Requery when we get a Redirect
 sub _search_output {
 
 	my ($self, $query) = @_;
-
 	my $result = $self->_db_lookup($query);
 
 	while ($result && $result->{type} eq 'R') {
@@ -109,7 +115,6 @@ sub _search_output {
 # Capture & display any raised errors
 sub _db_lookup {
 	my ($self, $query) = @_;
-
 	my $result;
 	$@ = '';
 
@@ -124,12 +129,6 @@ sub _db_lookup {
 	};
 	$self->app->emit_error("SQL database error: $@") if $@;
 	return $result;
-}
-
-sub structured_answer_for_query {
-	my ($self, $query) = @_;
-	my $result = $self->_search_output($query) or return undef;
-	return $self->_build_structured_answer($result);
 }
 
 # Build a Structured Answer hash
