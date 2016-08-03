@@ -43,7 +43,7 @@ sub _build_output_txt {
 		$file = path("lib/fathead/", $self->selected, "/output.txt");
 		unless ($file->exists){
 			my $full_path = $file->realpath;
-			$self->app->emit_and_exit(1, "No output.txt was not found in $full_path");
+			$self->app->emit_and_exit(1, "No output.txt was found in $full_path");
 		}
 	}
 	return $file;
